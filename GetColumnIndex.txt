@@ -1,0 +1,21 @@
+’VBA関数
+'-----------------------------
+' 配列列インデックス取得関数
+'-----------------------------
+' 【機能】  
+'   指定したタイトルの列番号を取得する。
+' 【引数】
+'   - arr: データ配列
+'   - title: 検索するタイトル名
+' 【戻り値】
+'   - 見つかった列番号（見つからなければ 0）
+Function GetColumnIndex(arr As Variant, title As String) As Long
+    Dim i As Long
+    For i = 1 To UBound(arr, 2)
+        If arr(1, i) = title Then
+            GetColumnIndex = i
+            Exit Function
+        End If
+    Next i
+    GetColumnIndex = 0
+End Function
