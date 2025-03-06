@@ -1,0 +1,63 @@
+’VBA関数
+'-----------------------------
+' 配列計算関数（小数点第1位で四捨五入）
+'-----------------------------
+' 【機能】  
+'   2つの列の数値を掛け算し、結果を小数点第1位で四捨五入して格納する。
+' 【引数】
+'   - arr1:  計算対象のデータ配列
+'   - col1:  計算する値の1列目
+'   - col2:  計算する値の2列目
+'   - resultCol: 計算結果を格納する列
+' 【スキップ条件】
+'   - arr1 の 1列目と5列目に値がある場合のみ処理対象
+' 【メインプロシージャ呼び出し例】
+’arr1 = ApplyCalculation_Round1(arr1, col1, col2, resultCol)
+Function ApplyCalculation_Round1(arr1 As Variant, col1 As String, col2 As String, resultCol As String) As Variant
+    Dim i As Long, lastRow As Long
+    Dim idx1 As Long, idx2 As Long, resultIdx As Long
+    
+    lastRow = UBound(arr1, 1)
+    idx1 = GetColumnIndex(arr1, col1)
+    idx2 = GetColumnIndex(arr1, col2)
+    resultIdx = GetColumnIndex(arr1, resultCol)
+    
+    If idx1 = 0 Or idx2 = 0 Or resultIdx = 0 Then Exit Function
+    
+    For i = 2 To lastRow
+        If Trim(arr1(i, 1)) <> "" And Trim(arr1(i, 5)) <> "" Then
+            If IsNumeric(arr1(i, idx1)) And IsNumeric(arr1(i, idx2)) Then
+                Dim value1 As Currency, value2 As Currency, result As Currency
+                value1 = CCur(arr1(i, idx1))
+                value2 = CCur(arr1(i, idx2))
+                result = value1 * value2
+                arr1(i, resultIdx) = Round(result, 1) ' 小数点第1位で四捨五入
+            Else
+                arr1(i, resultIdx) = ""
+            End If
+        End If
+    Next i
+    
+    ApplyCalculation_Round1 = arr1
+End Function
+
+'-----------------------------
+' 列インデックス取得関数
+'-----------------------------
+' 【機能】  
+'   指定したタイトルの列番号を取得する。
+' 【引数】
+'   - arr: データ配列
+'   - title: 検索するタイトル名
+' 【戻り値】
+'   - 見つかった列番号（見つからなければ 0）
+Function GetColumnIndex(arr As Variant, title As String) As Long
+    Dim i As Long
+    For i = 1 To UBound(arr, 2)
+        If arr(1, i) = title Then
+            GetColumnIndex = i
+            Exit Function
+        End If
+    Next i
+    GetColumnIndex = 0
+End Function
