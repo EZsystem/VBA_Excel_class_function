@@ -1,4 +1,52 @@
 
+Function she04_arr1_rowdell_1(temp4 As Variant, arr1 As Variant) As Variant
+    Dim i As Long, j As Long, lastRow As Long, newRow As Long
+    Dim matchStr As String
+    Dim tempResult() As Variant
+
+    ' 対象配列の行数を取得
+    lastRow = UBound(temp4, 1)
+    
+    ' 削除判断列のタイトルを設定
+    temp4(1, 17) = "削除判断列"
+
+    ' 条件を満たす行に「×」を記入
+    For j = LBound(arr1) To UBound(arr1)
+        matchStr = Trim(arr1(j, 1)) & Trim(arr1(j, 2)) & Trim(arr1(j, 3)) & Trim(arr1(j, 4)) & Trim(arr1(j, 5))
+        
+        For i = 2 To lastRow
+            If matchStr = Trim(temp4(i, 2)) & Trim(temp4(i, 3)) & Trim(temp4(i, 4)) & Trim(temp4(i, 11)) & Trim(temp4(i, 16)) Then
+                temp4(i, 17) = "×"
+            End If
+        Next i
+    Next j
+
+    ' 新しい配列の行数をカウント（"×" 以外 + タイトル行）
+    newRow = 1
+    For i = 2 To lastRow
+        If temp4(i, 17) <> "×" Then newRow = newRow + 1
+    Next i
+
+    ' 新しい配列を作成（タイトル + "×" 以外の行）
+    ReDim tempResult(1 To newRow, 1 To 2)
+    
+    ' タイトル行をコピー
+    tempResult(1, 1) = temp4(1, 1)
+    tempResult(1, 2) = temp4(1, 2)
+
+    ' データ行をコピー
+    newRow = 2
+    For i = 2 To lastRow
+        If temp4(i, 17) <> "×" Then
+            tempResult(newRow, 1) = temp4(i, 1)
+            tempResult(newRow, 2) = temp4(i, 2)
+            newRow = newRow + 1
+        End If
+    Next i
+
+    ' 結果を返す
+    she04_arr1_rowdell_1 = tempResult
+End Function
 
 
     keyIdx = GetColumnIndex(arr1, keyCol)
