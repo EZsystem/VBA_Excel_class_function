@@ -1,15 +1,15 @@
 Option Explicit
-
 '=================================================
 ' 関数名: fun_sisokusan1
 ' 説明  : 配列内の指定された2列に対して四則演算を行い、通貨型の結果を返す関数
 '         ※計算結果は通貨型（Currency）配列で返されます
+'         ※不正な演算子や列名エラー時は CVErr(xlErrValue) を返します
 '=================================================
 
 Function fun_sisokusan1(arrData As Variant, _
                         colName1 As String, _
                         colName2 As String, _
-                        operator As String, _
+                        operation As String, _
                         Optional doRound As Boolean = False, _
                         Optional roundDigits As Integer = 0) As Variant
 
@@ -18,38 +18,41 @@ Function fun_sisokusan1(arrData As Variant, _
     ' arrData     : 元の2次元配列（1行目はタイトル）
     ' colName1    : 計算対象列1の列名（タイトル行に一致する名前）
     ' colName2    : 計算対象列2の列名
-    ' operator    : 四則演算の種類 → "add", "sub", "mul", "div"
+    ' operation   : 四則演算の種類 → "add", "sub", "mul", "div"
     ' doRound     : 四捨五入を行うか（省略可、デフォルト: False）
     ' roundDigits : 四捨五入する桁数（省略可、デフォルト: 0）
     '
     ' 戻り値      : 計算結果の1次元Currency型配列（行単位で1つの値を返す）
+    '               エラー時は CVErr(xlErrValue)
     '
     ' 呼び出し例：
     '     Dim arr1 As Variant
-    '     arr1(i,colneme) = fun_sisokusan1(arr1, "金額1", "金額2", "mul", True, 0)
+    '     arr1 = fun_sisokusan1(arr1, "金額1", "金額2", "mul", True, 0)
     '---------------------------------------------
 
     Dim result() As Currency
     Dim col1Index As Long, col2Index As Long
     Dim i As Long, rowsCount As Long
     Dim tmpVal As Currency
+    Dim op As String
 
-    '--- 列名から列番号を取得 ---
+    On Error GoTo ErrorHandler
+
     col1Index = GetColIndex(arrData, colName1)
     col2Index = GetColIndex(arrData, colName2)
 
     If col1Index = -1 Or col2Index = -1 Then
-        MsgBox "指定された列名が見つからないにゃ", vbExclamation
+        fun_sisokusan1 = CVErr(xlErrValue)
         Exit Function
     End If
 
-    '--- 結果格納用の配列（タイトル行除く） ---
     rowsCount = UBound(arrData, 1)
     ReDim result(1 To rowsCount - 1)
 
-    '--- 各行の演算処理 ---
+    op = LCase(operation)
+
     For i = 2 To rowsCount
-        Select Case operator
+        Select Case op
             Case "add": tmpVal = arrData(i, col1Index) + arrData(i, col2Index)
             Case "sub": tmpVal = arrData(i, col1Index) - arrData(i, col2Index)
             Case "mul": tmpVal = arrData(i, col1Index) * arrData(i, col2Index)
@@ -57,22 +60,22 @@ Function fun_sisokusan1(arrData As Variant, _
                 If arrData(i, col2Index) <> 0 Then
                     tmpVal = arrData(i, col1Index) / arrData(i, col2Index)
                 Else
-                    tmpVal = 0 ' 0除算は0返し（必要に応じて変更）
+                    tmpVal = 0
                 End If
             Case Else
-                MsgBox "演算子が不正にゃ（add, sub, mul, div）", vbExclamation
+                fun_sisokusan1 = CVErr(xlErrValue)
                 Exit Function
         End Select
 
-        '--- 四捨五入 ---
-        If doRound Then
-            tmpVal = Round(tmpVal, roundDigits)
-        End If
-
+        If doRound Then tmpVal = Round(tmpVal, roundDigits)
         result(i - 1) = tmpVal
     Next i
 
     fun_sisokusan1 = result
+    Exit Function
+
+ErrorHandler:
+    fun_sisokusan1 = CVErr(xlErrValue)
 End Function
 
 '=================================================
@@ -86,13 +89,13 @@ End Function
 '=================================================
 Function GetColIndex(arr As Variant, colName As String) As Long
     Dim j As Long
+    GetColIndex = -1
     For j = LBound(arr, 2) To UBound(arr, 2)
         If arr(1, j) = colName Then
             GetColIndex = j
             Exit Function
         End If
     Next j
-    GetColIndex = -1
 End Function
 
 '=================================================
@@ -108,7 +111,10 @@ End Function
 Function IsValueEqual(arr As Variant, row As Long, colName As String, expected As Variant) As Boolean
     Dim colIndex As Long
     colIndex = GetColIndex(arr, colName)
-    If colIndex = -1 Then Exit Function
+    If colIndex = -1 Then
+        IsValueEqual = False
+        Exit Function
+    End If
     IsValueEqual = (arr(row, colIndex) = expected)
 End Function
 
@@ -124,7 +130,10 @@ End Function
 Function IsBlank(arr As Variant, row As Long, colName As String) As Boolean
     Dim colIndex As Long
     colIndex = GetColIndex(arr, colName)
-    If colIndex = -1 Then Exit Function
+    If colIndex = -1 Then
+        IsBlank = False
+        Exit Function
+    End If
     IsBlank = (Trim(arr(row, colIndex) & "") = "")
 End Function
 
@@ -141,9 +150,14 @@ End Function
 Function IsLessThan(arr As Variant, row As Long, colName As String, threshold As Double) As Boolean
     Dim colIndex As Long
     colIndex = GetColIndex(arr, colName)
-    If colIndex = -1 Then Exit Function
+    If colIndex = -1 Then
+        IsLessThan = False
+        Exit Function
+    End If
     If IsNumeric(arr(row, colIndex)) Then
         IsLessThan = (arr(row, colIndex) < threshold)
+    Else
+        IsLessThan = False
     End If
 End Function
 
@@ -160,7 +174,10 @@ End Function
 Function IsInList(arr As Variant, row As Long, colName As String, list As Variant) As Boolean
     Dim colIndex As Long, i As Long
     colIndex = GetColIndex(arr, colName)
-    If colIndex = -1 Then Exit Function
+    If colIndex = -1 Then
+        IsInList = False
+        Exit Function
+    End If
     For i = LBound(list) To UBound(list)
         If arr(row, colIndex) = list(i) Then
             IsInList = True
@@ -169,3 +186,4 @@ Function IsInList(arr As Variant, row As Long, colName As String, list As Varian
     Next i
     IsInList = False
 End Function
+
