@@ -1,1 +1,33 @@
-1
+' clsRowFilter クラス
+Private arrData As Variant
+
+Public Property Let Data(value As Variant)
+    arrData = value
+End Property
+
+Public Function ShouldSkip(row As Long) As Boolean
+    If Trim(arrData(row, 2) & "") = "" Then ' "単価"
+        ShouldSkip = True
+        Exit Function
+    End If
+    If arrData(row, 4) = "対象外" Then       ' "ステータス"
+        ShouldSkip = True
+        Exit Function
+    End If
+    ShouldSkip = False
+End Function
+
+' clsArrayCalculator クラス
+Private arrData As Variant
+
+Public Property Let Data(value As Variant)
+    arrData = value
+End Property
+
+Public Function CalculateOneRow(row As Long, colIndex1 As Long, colIndex2 As Long, _
+                                Optional roundDigits As Integer = 0) As Currency
+    Dim result As Currency
+    result = arrData(row, colIndex1) * arrData(row, colIndex2)
+    CalculateOneRow = Round(result, roundDigits)
+End Function
+
