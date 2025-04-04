@@ -1,0 +1,36 @@
+Option Explicit
+'クラスモジュール名：cls_arrColIndexer
+'配列内のタイトル行から列インデックスを取得するクラス
+
+Private arrData As Variant
+
+'=================================================
+' プロパティ: Data
+' 説明  : 配列データ（2次元）の設定
+' 引数  :
+'   value - 2次元のVariant配列（タイトル行あり）
+'=================================================
+Public Property Let Data(value As Variant)
+    arrData = value
+End Property
+
+'=================================================
+' 関数名: GetColIndex
+' 説明  : 列名（タイトル行）から列番号を取得
+' 引数  :
+'   colName - 探す列名（String）
+' 戻り値 : 列番号（Long）、見つからなければ -1
+' 使用例 :
+'   colIdx = indexer.GetColIndex("金額")
+'=================================================
+Public Function GetColIndex(colName As String) As Long
+    Dim j As Long
+    For j = LBound(arrData, 2) To UBound(arrData, 2)
+        If arrData(1, j) = colName Then
+            GetColIndex = j
+            Exit Function
+        End If
+    Next j
+    GetColIndex = -1
+End Function
+
