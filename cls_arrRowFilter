@@ -1,27 +1,36 @@
 Option Explicit
 'クラスモジュール名：cls_arrRowFilter
+'配列内の行に対して、条件による判定処理を行うクラス
+
 Private arrData As Variant
+Private indexer As cls_arrColIndexer
 
 '=================================================
 ' プロパティ: Data
-' 説明  : 配列データ（2次元）の設定
+' 説明  : 配列データ（2次元）の設定。列インデックス管理クラスも内部で生成
 ' 引数  :
 '   value - 2次元のVariant配列（タイトル行あり）
 '=================================================
 Public Property Let Data(value As Variant)
     arrData = value
+    Set indexer = New cls_arrColIndexer
+    indexer.Data = arrData
 End Property
 
-' 内部で cls_arrColIndexer を使って列インデックスを取得する共通関数
 Private Function GetColIndex(colName As String) As Long
-    Dim indexer As New cls_arrColIndexer
-    indexer.Data = arrData
     GetColIndex = indexer.GetColIndex(colName)
 End Function
 
 '=================================================
 ' 関数名: IsValueEqual
-' 説明  : 指定列の値が、指定値と一致するかを判定する関数
+' 説明  : 指定列の値が、指定値と一致するかを判定
+' 引数  :
+'   row     - 行番号（Long）
+'   colName - 列名（String）
+'   expected - 比較対象値（Variant）
+' 戻り値 : 一致すれば True、異なれば False（Boolean）
+' 使用例 :
+'   If filter.IsValueEqual(3, "ステータス", "完了") Then ...
 '=================================================
 Public Function IsValueEqual(row As Long, colName As String, expected As Variant) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -31,7 +40,13 @@ End Function
 
 '=================================================
 ' 関数名: IsBlank
-' 説明  : 指定列の値が空白かどうかを判定する関数
+' 説明  : 指定列の値が空白かを判定
+' 引数  :
+'   row     - 行番号（Long）
+'   colName - 列名（String）
+' 戻り値 : 空白なら True、それ以外は False（Boolean）
+' 使用例 :
+'   If filter.IsBlank(4, "備考") Then ...
 '=================================================
 Public Function IsBlank(row As Long, colName As String) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -41,7 +56,14 @@ End Function
 
 '=================================================
 ' 関数名: IsGreaterThan
-' 説明  : 指定列の値が閾値より大きいかを判定する関数
+' 説明  : 指定列の値が、指定値より大きいかを判定
+' 引数  :
+'   row     - 行番号（Long）
+'   colName - 列名（String）
+'   threshold - 閾値（Double）
+' 戻り値 : 条件を満たせば True（Boolean）
+' 使用例 :
+'   If filter.IsGreaterThan(5, "数量", 100) Then ...
 '=================================================
 Public Function IsGreaterThan(row As Long, colName As String, threshold As Double) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -53,7 +75,15 @@ End Function
 
 '=================================================
 ' 関数名: IsBetween
-' 説明  : 値が指定された範囲内にあるか（含む）を判定
+' 説明  : 指定列の値が、指定された範囲に入っているかを判定
+' 引数  :
+'   row     - 行番号（Long）
+'   colName - 列名（String）
+'   minVal  - 最小値（Double）
+'   maxVal  - 最大値（Double）
+' 戻り値 : 範囲内なら True（Boolean）
+' 使用例 :
+'   If filter.IsBetween(2, "点数", 60, 80) Then ...
 '=================================================
 Public Function IsBetween(row As Long, colName As String, minVal As Double, maxVal As Double) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -65,7 +95,7 @@ End Function
 
 '=================================================
 ' 関数名: Contains
-' 説明  : 値が指定文字列を含むかを判定（部分一致）
+' 説明  : 指定列の値が、指定文字列を含んでいるかを判定（部分一致）
 '=================================================
 Public Function Contains(row As Long, colName As String, keyword As String) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -75,7 +105,7 @@ End Function
 
 '=================================================
 ' 関数名: StartsWith
-' 説明  : 値が指定文字列で始まっているかを判定
+' 説明  : 指定列の値が、指定文字列で始まっているかを判定
 '=================================================
 Public Function StartsWith(row As Long, colName As String, prefix As String) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -85,7 +115,7 @@ End Function
 
 '=================================================
 ' 関数名: EndsWith
-' 説明  : 値が指定文字列で終わっているかを判定
+' 説明  : 指定列の値が、指定文字列で終わっているかを判定
 '=================================================
 Public Function EndsWith(row As Long, colName As String, suffix As String) As Boolean
     Dim idx As Long: idx = GetColIndex(colName)
@@ -94,47 +124,8 @@ Public Function EndsWith(row As Long, colName As String, suffix As String) As Bo
 End Function
 
 '=================================================
-' 関数名: IsDateBefore
-' 説明  : 日付が指定日より前かを判定する関数
-'=================================================
-Public Function IsDateBefore(row As Long, colName As String, compareDate As Date) As Boolean
-    Dim idx As Long: idx = GetColIndex(colName)
-    If idx = -1 Then Exit Function
-    If IsDate(arrData(row, idx)) Then
-        IsDateBefore = (arrData(row, idx) < compareDate)
-    End If
-End Function
-
-'=================================================
-' 関数名: IsDateInPast
-' 説明  : 日付が現在より前かを判定する関数
-'=================================================
-Public Function IsDateInPast(row As Long, colName As String) As Boolean
-    IsDateInPast = IsDateBefore(row, colName, Date)
-End Function
-
-'=================================================
-' 関数名: IsNotInList
-' 説明  : 指定値がリストに含まれていないかを判定
-'=================================================
-Public Function IsNotInList(row As Long, colName As String, list As Variant) As Boolean
-    Dim idx As Long, i As Long
-    idx = GetColIndex(colName)
-    If idx = -1 Then Exit Function
-
-    For i = LBound(list) To UBound(list)
-        If arrData(row, idx) = list(i) Then
-            IsNotInList = False
-            Exit Function
-        End If
-    Next i
-
-    IsNotInList = True
-End Function
-
-'=================================================
 ' 関数名: HasColumn
-' 説明  : 指定列名が存在するかを判定する関数
+' 説明  : 指定された列名が存在するかを確認
 '=================================================
 Public Function HasColumn(colName As String) As Boolean
     HasColumn = (GetColIndex(colName) <> -1)
@@ -142,11 +133,10 @@ End Function
 
 '=================================================
 ' 関数名: GetValue
-' 説明  : 指定セルの値を取得する関数
+' 説明  : 指定されたセルの値を取得
 '=================================================
 Public Function GetValue(row As Long, colName As String) As Variant
     Dim idx As Long: idx = GetColIndex(colName)
     If idx = -1 Then Exit Function
     GetValue = arrData(row, idx)
 End Function
-
