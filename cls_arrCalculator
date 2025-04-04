@@ -1,0 +1,165 @@
+Option Explicit
+'クラスモジュール名：ccls_arrCalculator
+'配列内の計算を目的としたクラス
+Private arrData As Variant
+
+'=================================================
+' プロパティ: Data
+' 説明  : 配列データ（2次元）の設定
+' 引数  :
+'   value - 2次元のVariant配列（タイトル行あり）
+'=================================================
+Public Property Let Data(value As Variant)
+    arrData = value
+End Property
+
+'=================================================
+' 関数名: CalculateOneRow
+' 説明  : 指定列同士で四則演算を行う（1行単位）
+' 引数  :
+'   row       - 行番号（Long）
+'   colName1  - 第1列名（String）
+'   colName2  - 第2列名（String）
+'   operator  - "add", "sub", "mul", "div"（String）
+'   doRound   - 四捨五入するか（Boolean）
+'   roundDigits - 丸める桁数（Integer）
+' 戻り値 : 計算結果（Currency）
+' 使用例 :
+'   result = calc.CalculateOneRow(5, "単価", "数量", "mul", True, 0)
+'=================================================
+Public Function CalculateOneRow(row As Long, _
+                                colName1 As String, _
+                                colName2 As String, _
+                                operator As String, _
+                                Optional doRound As Boolean = False, _
+                                Optional roundDigits As Integer = 0) As Currency
+    Dim col1 As Long, col2 As Long
+    Dim val1 As Currency, val2 As Currency
+    Dim result As Currency
+
+    col1 = GetColIndex(colName1)
+    col2 = GetColIndex(colName2)
+    If col1 = -1 Or col2 = -1 Then Err.Raise vbObjectError + 100, , "列名が見つからないにゃ"
+
+    val1 = CCur(arrData(row, col1))
+    val2 = CCur(arrData(row, col2))
+
+    Select Case operator
+        Case "add": result = val1 + val2
+        Case "sub": result = val1 - val2
+        Case "mul": result = val1 * val2
+        Case "div"
+            If val2 <> 0 Then
+                result = val1 / val2
+            Else
+                result = 0
+            End If
+        Case Else
+            Err.Raise vbObjectError + 101, , "演算子が不正にゃ"
+    End Select
+
+    If doRound Then result = Round(result, roundDigits)
+
+    CalculateOneRow = result
+End Function
+
+'=================================================
+' 関数名: CalculateIfMatch
+' 説明  : 条件一致時のみ演算を行い、必要に応じて四捨五入
+' 引数  :
+'   row            - 行番号（Long）
+'   conditionCol   - 判定する列名（String）
+'   expectedValue  - 条件となる値（Variant）
+'   colName1       - 第1計算列名（String）
+'   colName2       - 第2計算列名（String）
+'   operator       - "add", "sub", "mul", "div"（String）
+'   doRound        - 丸めるかどうか（Boolean）
+'   roundDigits    - 丸め桁数（Integer）
+' 戻り値 : 計算結果（Currency）、条件不一致時は 0
+' 使用例 :
+'   result = calc.CalculateIfMatch(i, "区分", "A", "金額", "係数", "mul", True, 1)
+'=================================================
+Public Function CalculateIfMatch(row As Long, _
+                                 conditionCol As String, expectedValue As Variant, _
+                                 colName1 As String, colName2 As String, operator As String, _
+                                 Optional doRound As Boolean = False, _
+                                 Optional roundDigits As Integer = 0) As Currency
+    Dim condIdx As Long
+    condIdx = GetColIndex(conditionCol)
+    If condIdx = -1 Then Err.Raise vbObjectError + 102, , "条件列が見つからないにゃ"
+
+    If arrData(row, condIdx) <> expectedValue Then
+        CalculateIfMatch = 0
+        Exit Function
+    End If
+
+    CalculateIfMatch = CalculateOneRow(row, colName1, colName2, operator, doRound, roundDigits)
+End Function
+
+'=================================================
+' 関数名: GetValueIfMatch
+' 説明  : 条件一致時のみ、指定列の値をそのまま返す
+' 引数  :
+'   row            - 行番号（Long）
+'   conditionCol   - 判定列名（String）
+'   expectedValue  - 比較する値（Variant）
+'   targetCol      - 転写する値の列名（String）
+' 戻り値 : 転写値（Variant）、一致しなければ空文字
+' 使用例 :
+'   val = calc.GetValueIfMatch(i, "ステータス", "有効", "金額")
+'=================================================
+Public Function GetValueIfMatch(row As Long, _
+                                conditionCol As String, expectedValue As Variant, _
+                                targetCol As String) As Variant
+    Dim condIdx As Long, targetIdx As Long
+    condIdx = GetColIndex(conditionCol)
+    targetIdx = GetColIndex(targetCol)
+
+    If condIdx = -1 Or targetIdx = -1 Then Exit Function
+
+    If arrData(row, condIdx) = expectedValue Then
+        GetValueIfMatch = arrData(row, targetIdx)
+    Else
+        GetValueIfMatch = ""
+    End If
+End Function
+
+'=================================================
+' 関数名: GetNumericValue
+' 説明  : 指定列の値を数値（Currency）として取得する
+' 引数  :
+'   row     - 行番号（Long）
+'   colName - 対象列名（String）
+' 戻り値 : 数値（Currency）、非数値や空白なら 0
+' 使用例 :
+'   num = calc.GetNumericValue(6, "係数")
+'=================================================
+Public Function GetNumericValue(row As Long, colName As String) As Currency
+    Dim idx As Long: idx = GetColIndex(colName)
+    If idx = -1 Then Exit Function
+    If IsNumeric(arrData(row, idx)) Then
+        GetNumericValue = CCur(arrData(row, idx))
+    Else
+        GetNumericValue = 0
+    End If
+End Function
+
+'=================================================
+' 関数名: GetColIndex
+' 説明  : 列名から列インデックス（数値）を取得する
+' 引数  :
+'   colName - 列名（String）
+' 戻り値 : 列番号（Long）、見つからなければ -1
+'=================================================
+Private Function GetColIndex(colName As String) As Long
+    Dim j As Long
+    For j = LBound(arrData, 2) To UBound(arrData, 2)
+        If arrData(1, j) = colName Then
+            GetColIndex = j
+            Exit Function
+        End If
+    Next j
+    GetColIndex = -1
+End Function
+
+
