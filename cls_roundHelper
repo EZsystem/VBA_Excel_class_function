@@ -1,0 +1,21 @@
+Option Explicit
+'クラスモジュール名：cls_roundHelper
+'丸め処理（四捨五入）を提供するヘルパークラス
+
+'=================================================
+' 関数名: RoundToDigits
+' 説明  : 指定桁数で四捨五入を行う
+' 引数  :
+'   val    - 丸め対象の数値（Double）
+'   digits - 丸める桁数（Long）
+'            例：1 → 小数第1位, 0 → 1の位, -1 → 10の位
+' 戻り値 : 丸められた値（Double）
+' 使用例 :
+'   result = rounder.RoundToDigits(123.456, -1) ' → 120
+'=================================================
+Public Function RoundToDigits(val As Double, digits As Long) As Double
+    Dim factor As Double
+    factor = 10 ^ digits
+    RoundToDigits = Round(val / factor, 0) * factor
+End Function
+
