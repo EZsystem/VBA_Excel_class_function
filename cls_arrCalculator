@@ -1,6 +1,7 @@
 Option Explicit
-'クラスモジュール名：ccls_arrCalculator
+'クラスモジュール名：cls_arrCalculator
 '配列内の計算を目的としたクラス
+
 Private arrData As Variant
 
 '=================================================
@@ -17,15 +18,16 @@ End Property
 ' 関数名: CalculateOneRow
 ' 説明  : 指定列同士で四則演算を行う（1行単位）
 ' 引数  :
-'   row       - 行番号（Long）
-'   colName1  - 第1列名（String）
-'   colName2  - 第2列名（String）
-'   operator  - "add", "sub", "mul", "div"（String）
-'   doRound   - 四捨五入するか（Boolean）
+'   row         - 行番号（Long）
+'   colName1    - 第1列名（String）
+'   colName2    - 第2列名（String）
+'   operator    - 演算子（String）："add", "sub", "mul", "div"
+'   doRound     - 四捨五入を行うか（Boolean）
 '   roundDigits - 丸める桁数（Integer）
+'                ※0未満は無視される（外部で丸める前提）
 ' 戻り値 : 計算結果（Currency）
 ' 使用例 :
-'   result = calc.CalculateOneRow(5, "単価", "数量", "mul", True, 0)
+'   result = calc.CalculateOneRow(3, "数量", "単価", "mul", True, 1)
 '=================================================
 Public Function CalculateOneRow(row As Long, _
                                 colName1 As String, _
@@ -48,17 +50,13 @@ Public Function CalculateOneRow(row As Long, _
         Case "add": result = val1 + val2
         Case "sub": result = val1 - val2
         Case "mul": result = val1 * val2
-        Case "div"
-            If val2 <> 0 Then
-                result = val1 / val2
-            Else
-                result = 0
-            End If
-        Case Else
-            Err.Raise vbObjectError + 101, , "演算子が不正にゃ"
+        Case "div": If val2 <> 0 Then result = val1 / val2 Else result = 0
+        Case Else: Err.Raise vbObjectError + 101, , "演算子が不正にゃ"
     End Select
 
-    If doRound Then result = Round(result, roundDigits)
+    If doRound And roundDigits >= 0 Then
+        result = Round(result, roundDigits)
+    End If
 
     CalculateOneRow = result
 End Function
@@ -68,16 +66,16 @@ End Function
 ' 説明  : 条件一致時のみ演算を行い、必要に応じて四捨五入
 ' 引数  :
 '   row            - 行番号（Long）
-'   conditionCol   - 判定する列名（String）
-'   expectedValue  - 条件となる値（Variant）
-'   colName1       - 第1計算列名（String）
-'   colName2       - 第2計算列名（String）
+'   conditionCol   - 条件列名（String）
+'   expectedValue  - 比較対象値（Variant）
+'   colName1       - 第1列名（String）
+'   colName2       - 第2列名（String）
 '   operator       - "add", "sub", "mul", "div"（String）
-'   doRound        - 丸めるかどうか（Boolean）
-'   roundDigits    - 丸め桁数（Integer）
-' 戻り値 : 計算結果（Currency）、条件不一致時は 0
+'   doRound        - 四捨五入を行うか（Boolean）
+'   roundDigits    - 丸める桁数（Integer）
+' 戻り値 : 計算結果（Currency）、一致しなければ0
 ' 使用例 :
-'   result = calc.CalculateIfMatch(i, "区分", "A", "金額", "係数", "mul", True, 1)
+'   result = calc.CalculateIfMatch(5, "区分", "A", "単価", "係数", "mul", True, 0)
 '=================================================
 Public Function CalculateIfMatch(row As Long, _
                                  conditionCol As String, expectedValue As Variant, _
@@ -102,11 +100,11 @@ End Function
 ' 引数  :
 '   row            - 行番号（Long）
 '   conditionCol   - 判定列名（String）
-'   expectedValue  - 比較する値（Variant）
-'   targetCol      - 転写する値の列名（String）
-' 戻り値 : 転写値（Variant）、一致しなければ空文字
+'   expectedValue  - 条件値（Variant）
+'   targetCol      - 値を取得する列名（String）
+' 戻り値 : 条件一致なら対象値、そうでなければ空文字（Variant）
 ' 使用例 :
-'   val = calc.GetValueIfMatch(i, "ステータス", "有効", "金額")
+'   val = calc.GetValueIfMatch(3, "ステータス", "有効", "金額")
 '=================================================
 Public Function GetValueIfMatch(row As Long, _
                                 conditionCol As String, expectedValue As Variant, _
@@ -126,13 +124,13 @@ End Function
 
 '=================================================
 ' 関数名: GetNumericValue
-' 説明  : 指定列の値を数値（Currency）として取得する
+' 説明  : 指定列の値をCurrency型として取得する（非数値なら0）
 ' 引数  :
 '   row     - 行番号（Long）
 '   colName - 対象列名（String）
-' 戻り値 : 数値（Currency）、非数値や空白なら 0
+' 戻り値 : Currency型の数値（非数値や空白なら0）
 ' 使用例 :
-'   num = calc.GetNumericValue(6, "係数")
+'   val = calc.GetNumericValue(4, "数量")
 '=================================================
 Public Function GetNumericValue(row As Long, colName As String) As Currency
     Dim idx As Long: idx = GetColIndex(colName)
@@ -161,5 +159,3 @@ Private Function GetColIndex(colName As String) As Long
     Next j
     GetColIndex = -1
 End Function
-
-
