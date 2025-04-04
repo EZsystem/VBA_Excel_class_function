@@ -13,9 +13,10 @@ Option Explicit
 ' 使用例 :
 '   result = rounder.RoundToDigits(123.456, -1) ' → 120
 '=================================================
-Public Function RoundToDigits(val As Double, digits As Long) As Double
+Public Function RoundToDigits(val As Variant, digits As Long) As Double
     Dim factor As Double
-    factor = 10 ^ digits
-    RoundToDigits = Round(val / factor, 0) * factor
+
+    factor = 10 ^ (digits)
+    RoundToDigits = Round(CDbl(val) * factor, 0) / factor
 End Function
 
